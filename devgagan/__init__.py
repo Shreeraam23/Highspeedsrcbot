@@ -3,6 +3,7 @@
 import asyncio
 import logging
 import os
+from pathlib import Path
 
 # pyromod MUST be imported before any Client is constructed — it patches
 # pyrogram.client.Client at import time (adds the `listeners` machinery).
@@ -15,9 +16,11 @@ logging.basicConfig(
     level=logging.INFO,
 )
 
-# Download cache dir (reused media skip re-downloads, cached thumbnails live here)
-os.makedirs("/app/downloads", exist_ok=True)
-os.makedirs("/app/downloads/thumbs", exist_ok=True)
+# Download cache dir (reused media skip re-downloads, cached thumbnails live here).
+# Use the dyno/container working directory instead of a platform-specific path.
+DOWNLOAD_DIR = os.getenv("DOWNLOAD_DIR", str(Path.cwd() / "downloads"))
+os.makedirs(DOWNLOAD_DIR, exist_ok=True)
+os.makedirs(os.path.join(DOWNLOAD_DIR, "thumbs"), exist_ok=True)
 
 # pyromod's sync wrappers capture this import-time loop and schedule handler
 # coroutines back onto it. The bot MUST run on this same loop (asyncio.run()

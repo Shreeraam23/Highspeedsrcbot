@@ -11,6 +11,25 @@ app_port: 7860
 
 A Pyrogram V2 Telegram bot that saves content from public/private Telegram channels and groups at **lightning speed**.
 
+## Deploy to Heroku
+
+[![Deploy](https://www.herokucdn.com/deploy/button.svg)](https://heroku.com/deploy?template=https://github.com/sheetult/Highspeedherokusrcbot)
+
+This repository uses Heroku's container stack and starts the Telegram bot as a `worker` process. Click the button above, enter the required environment variables in Heroku, and deploy. The `app.json` manifest configures one Basic worker automatically.
+
+Required Heroku variables are `API_ID`, `API_HASH`, `BOT_TOKEN`, `MONGO_DB`, `OWNER_ID`, `CHANNEL_ID`, `LOG_GROUP`, and `ZAPUPI_TOKEN`. Optional variables are `FREEMIUM_LIMIT`, `PREMIUM_LIMIT`, `MAX_HEAVY_JOBS`, and `ENABLE_MEDIA_LOGGING`.
+
+For an existing Heroku app, deploy with the Heroku CLI:
+
+```bash
+heroku stack:set container -a YOUR_APP_NAME
+heroku git:remote -a YOUR_APP_NAME
+git push heroku main
+heroku ps:scale worker=1 -a YOUR_APP_NAME
+```
+
+The bot uses Heroku's ephemeral filesystem for temporary downloads and thumbnails. Persistent user sessions and settings are stored in MongoDB, so configure `MONGO_DB` before starting the worker.
+
 ## 🚀 What's Inside (v2 — Lightning Engine)
 
 - ⚡ **Zero-download fast path** — media is forwarded by `file_id` whenever possible (no download/upload at all)

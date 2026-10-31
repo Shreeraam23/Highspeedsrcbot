@@ -7,7 +7,8 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from flask import Flask, render_template
 
 # Keep the runtime directory available for modules that save temporary files.
-os.makedirs("/app/downloads", exist_ok=True)
+DOWNLOAD_DIR = os.getenv("DOWNLOAD_DIR", os.path.join(os.getcwd(), "downloads"))
+os.makedirs(DOWNLOAD_DIR, exist_ok=True)
 
 app = Flask(__name__)
 

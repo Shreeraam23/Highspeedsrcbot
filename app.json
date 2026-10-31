@@ -2,7 +2,14 @@
   "name": "Lightning Saver Bot - Ultra Fast Content Saver",
   "description": "Save restricted content from Telegram channels and groups at lightning speed.",
   "keywords": ["python3", "telegram", "telegram-bot", "pyrogram"],
-  "repository": "https://github.com/Shreeraam23/Newsaverbot",
+  "repository": "https://github.com/sheetult/Highspeedherokusrcbot",
+  "stack": "container",
+  "formation": {
+    "worker": {
+      "quantity": 1,
+      "size": "basic"
+    }
+  },
   "env": {
     "API_ID": {
       "description": "Get from https://my.telegram.org",

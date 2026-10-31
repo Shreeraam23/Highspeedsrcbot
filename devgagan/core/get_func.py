@@ -33,7 +33,8 @@ patch_upload_speed()
 
 ENABLE_MEDIA_LOGGING = os.getenv("ENABLE_MEDIA_LOGGING", "false").strip().lower() in {"1", "true", "yes", "on"}
 
-THUMB_DIR = "/app/downloads/thumbs"
+DOWNLOAD_DIR = os.getenv("DOWNLOAD_DIR", os.path.join(os.getcwd(), "downloads"))
+THUMB_DIR = os.getenv("THUMB_DIR", os.path.join(DOWNLOAD_DIR, "thumbs"))
 os.makedirs(THUMB_DIR, exist_ok=True)
 
 # In-memory per-user runtime state (fast lookups, no DB)

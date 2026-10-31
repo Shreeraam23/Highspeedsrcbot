@@ -1,4 +1,4 @@
-"""Runtime configuration loaded from Hugging Face Space secrets/environment variables."""
+"""Runtime configuration loaded from platform environment variables."""
 
 import os
 
@@ -8,7 +8,7 @@ def required(name: str) -> str:
     if not value:
         raise RuntimeError(
             f"Missing required environment variable: {name}. "
-            "Add it under Hugging Face Space Settings > Variables and secrets."
+            "Add it to the deployment platform's environment variables/secrets."
         )
     return value
 
