@@ -30,6 +30,16 @@ heroku ps:scale worker=1 -a YOUR_APP_NAME
 
 The bot uses Heroku's ephemeral filesystem for temporary downloads and thumbnails. Persistent user sessions and settings are stored in MongoDB, so configure `MONGO_DB` before starting the worker.
 
+## Deploy to Koyeb
+
+[![Deploy to Koyeb](https://www.koyeb.com/static/images/deploy/button.svg)](https://app.koyeb.com/deploy?type=git&builder=dockerfile&repository=github.com/sheetult/Highspeedherokusrcbot&branch=main&name=lightning-saver-bot&service_type=worker)
+
+The button deploys the `main` branch with the included `Dockerfile` as a Koyeb **Worker** service. After opening it, add these environment variables in Koyeb: `API_ID`, `API_HASH`, `BOT_TOKEN`, `MONGO_DB`, `OWNER_ID`, `CHANNEL_ID`, `LOG_GROUP`, and `ZAPUPI_TOKEN`. Optional variables are `FREEMIUM_LIMIT`, `PREMIUM_LIMIT`, `MAX_HEAVY_JOBS`, and `ENABLE_MEDIA_LOGGING`.
+
+To deploy your own public fork, replace the `repository=github.com/sheetult/Highspeedherokusrcbot` part of the button URL with `repository=github.com/YOUR_USERNAME/YOUR_REPOSITORY`, or open Koyeb's **Create Web Service → GitHub → Public GitHub repository** flow and paste your fork URL. For a private fork, connect GitHub to Koyeb and grant Koyeb access to that repository. Do not put tokens or MongoDB credentials in the button URL.
+
+Koyeb can build this repository directly from GitHub because it contains a Dockerfile. The worker does not need a public HTTP port; temporary downloads and thumbnails use the container's writable filesystem, while user sessions and settings are stored in MongoDB.
+
 ## 🚀 What's Inside (v2 — Lightning Engine)
 
 - ⚡ **Zero-download fast path** — media is forwarded by `file_id` whenever possible (no download/upload at all)
