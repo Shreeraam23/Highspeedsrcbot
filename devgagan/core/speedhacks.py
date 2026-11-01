@@ -29,11 +29,11 @@ except ImportError:
     def md5():
         return _new("md5")
 
-DL_WORKERS = int(os.getenv("DL_WORKERS", "12"))
-DL_BLOCK = 12 * 1024 * 1024      # bytes per worker request range
+DL_WORKERS = int(os.getenv("DL_WORKERS", "10"))
+DL_BLOCK = 8 * 1024 * 1024      # bytes per worker request range
 PARALLEL_MIN_SIZE = 12 * 1024 * 1024  # use parallel engine only for bigger files
 
-UPLOAD_CONNECTIONS = int(os.getenv("UPLOAD_CONNECTIONS", "12"))
+UPLOAD_CONNECTIONS = int(os.getenv("UPLOAD_CONNECTIONS", "8"))
 UPLOAD_PART = 512 * 1024        # Telegram's max safe part size
 BIG_FILE = 10 * 1024 * 1024
 
@@ -280,7 +280,7 @@ def _media_of(message):
 
 
 async def fast_download(client, message, file_path, progress=None, progress_args=()):
-    """Parallel ranged download with reliable sequential fallback."""
+    """Parallel ranged download. Falls back to Pyrogram's downloader if anything fails."""
     media = _media_of(message)
     if media is None:
         raise ValueError("No downloadable media found")
@@ -293,20 +293,6 @@ async def fast_download(client, message, file_path, progress=None, progress_args
         )
 
     file_id = FileId.decode(media.file_id)
-    # Pyrogram creates an exported authorization for every get_file media
-    # session when the file lives on another Telegram DC. Running 16 such
-    # sessions in parallel triggers auth.ExportAuthorization FloodWait and
-    # AUTH_KEY_UNREGISTERED errors. Let Pyrogram use one managed media session
-    # for cross-DC files; same-DC files still use the custom parallel engine.
-    try:
-        current_dc = await client.storage.dc_id()
-    except Exception:
-        current_dc = file_id.dc_id
-    if file_id.dc_id != current_dc:
-        return await client.download_media(
-            message, file_name=file_path,
-            progress=progress, progress_args=progress_args,
-        )
     chunk_size = 1024 * 1024
     total_chunks = int(math.ceil(file_size / chunk_size))
     block_chunks = max(1, DL_BLOCK // chunk_size)
@@ -332,10 +318,7 @@ async def fast_download(client, message, file_path, progress=None, progress_args
             start_chunk = block * block_chunks
             chunks = []
             async for data in client.get_file(
-                file_id,
-                file_size=file_size,
-                offset=start_chunk,
-                limit=block_chunks,
+                file_id, file_size, offset=start_chunk, limit=block_chunks
             ):
                 chunks.append(data)
             data = b"".join(chunks)
@@ -355,47 +338,21 @@ async def fast_download(client, message, file_path, progress=None, progress_args
 
     try:
         await asyncio.gather(*(download_block() for _ in range(workers)))
-        if done < file_size:
-            raise RuntimeError(f"Parallel download incomplete: {done}/{file_size} bytes")
         # safety: clamp to the exact declared size (server may pad the last block)
         with open(file_path, "r+b") as f:
             f.truncate(file_size)
     except StopTransmission:
         raise
     except Exception:
-        # Fallback: retry Pyrogram sequentially, then use the media file_id
-        # directly. Topic messages parsed through GetReplies can occasionally
-        # return an empty path when the Message wrapper is passed directly.
+        # fallback: clean sequential download
         try:
             if os.path.exists(file_path):
                 os.remove(file_path)
         except OSError:
             pass
-        media_file_id = getattr(media, "file_id", None)
-        download_dir = os.path.dirname(file_path) or "."
-        for source in (message, media_file_id):
-            if source is None:
-                continue
-            for destination in (file_path, download_dir + os.sep):
-                try:
-                    result = await client.download_media(
-                        source, file_name=destination,
-                        progress=progress, progress_args=progress_args,
-                    )
-                    candidates = [result, file_path]
-                    for candidate in candidates:
-                        if candidate and os.path.isfile(candidate) and os.path.getsize(candidate) > 0:
-                            return candidate
-                except Exception:
-                    pass
-                finally:
-                    if os.path.exists(file_path) and os.path.getsize(file_path) == 0:
-                        try:
-                            os.remove(file_path)
-                        except OSError:
-                            pass
-        # Let the caller choose a higher-level recovery path, such as public
-        # topic server-side copy. Do not expose a low-level downloader error.
-        return None
+        return await client.download_media(
+            message, file_name=file_path,
+            progress=progress, progress_args=progress_args,
+        )
 
     return file_path
