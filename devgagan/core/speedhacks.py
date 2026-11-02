@@ -29,11 +29,11 @@ except ImportError:
     def md5():
         return _new("md5")
 
-DL_WORKERS = int(os.getenv("DL_WORKERS", "16"))
+DL_WORKERS = int(os.getenv("DL_WORKERS", "8"))
 DL_BLOCK = 12 * 1024 * 1024      # bytes per worker request range
 PARALLEL_MIN_SIZE = 12 * 1024 * 1024  # use parallel engine only for bigger files
 
-UPLOAD_CONNECTIONS = int(os.getenv("UPLOAD_CONNECTIONS", "8"))
+UPLOAD_CONNECTIONS = int(os.getenv("UPLOAD_CONNECTIONS", "6"))
 UPLOAD_PART = 512 * 1024        # Telegram's max safe part size
 BIG_FILE = 10 * 1024 * 1024
 
@@ -331,13 +331,21 @@ async def fast_download(client, message, file_path, progress=None, progress_args
                 return
             start_chunk = block * block_chunks
             chunks = []
-            async for data in client.get_file(
-                file_id,
-                file_size=file_size,
-                offset=start_chunk,
-                limit=block_chunks,
-            ):
-                chunks.append(data)
+            for attempt in range(4):
+                try:
+                    chunks = []
+                    async for data in client.get_file(
+                        file_id,
+                        file_size=file_size,
+                        offset=start_chunk,
+                        limit=block_chunks,
+                    ):
+                        chunks.append(data)
+                    break
+                except (OSError, ConnectionError):
+                    if attempt == 3:
+                        raise
+                    await asyncio.sleep(min(2 ** attempt, 8))
             data = b"".join(chunks)
             off = start_chunk * chunk_size
             with open(file_path, "r+b") as f:
