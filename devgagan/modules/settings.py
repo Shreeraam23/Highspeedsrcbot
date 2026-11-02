@@ -72,7 +72,7 @@ async def settings_cancel(_, message: Message):
 
 @app.on_message(filters.private & filters.text & ~filters.command([
     "start", "help", "settings", "batch", "login", "logout", "cancel",
-    "stats", "myplan", "add", "rem", "check", "get", "gcast", "pay", "terms",
+    "stats", "myplan", "transfer", "add", "rem", "check", "get", "gcast", "pay", "terms",
 ]))
 async def settings_input(_, message: Message):
     if not message.from_user:
