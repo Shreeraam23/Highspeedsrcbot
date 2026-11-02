@@ -40,6 +40,7 @@ HELP_TXT = """
 📦 /batch — Bulk download links at turbo speed
 💎 /pay — Buy premium plans
 📊 /myplan — Check your premium status
+🔁 /transfer — Transfer your remaining premium to another user
 ⛔ /cancel — Stop any ongoing process
 
 {line}
