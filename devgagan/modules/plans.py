@@ -129,6 +129,80 @@ async def myplan(client, message):
         )
 
 
+@app.on_message(filters.command("transfer") & filters.private)
+async def transfer_premium_command(client, message):
+    """Immediately move an active premium plan to another Telegram user ID."""
+    if len(message.command) != 2:
+        await message.reply_text(
+            "Usage: /transfer user_id\n\n"
+            "Example: /transfer 123456789\n\n"
+            "This moves your remaining premium time to that Telegram account."
+        )
+        return
+
+    try:
+        recipient_id = int(message.command[1])
+    except ValueError:
+        await message.reply_text("❌ User ID must contain numbers only.")
+        return
+
+    sender_id = message.from_user.id
+    if recipient_id <= 0 or recipient_id == sender_id:
+        await message.reply_text("❌ Enter another valid Telegram user ID.")
+        return
+
+    source = await plans_db.check_premium(sender_id)
+    if not source or not source.get("expire_date"):
+        await message.reply_text("❌ You do not have an active premium plan to transfer.")
+        return
+
+    expiry = source["expire_date"]
+    if expiry.tzinfo is None:
+        expiry = pytz.utc.localize(expiry)
+    if expiry <= datetime.datetime.now(pytz.utc):
+        await message.reply_text("❌ Your premium plan has already expired.")
+        return
+
+    recipient_plan = await plans_db.check_premium(recipient_id)
+    if recipient_plan and recipient_plan.get("expire_date"):
+        recipient_expiry = recipient_plan["expire_date"]
+        if recipient_expiry.tzinfo is None:
+            recipient_expiry = pytz.utc.localize(recipient_expiry)
+        if recipient_expiry > datetime.datetime.now(pytz.utc):
+            await message.reply_text("❌ The recipient already has an active premium plan.")
+            return
+
+    success, reason, transferred_expiry = await plans_db.transfer_premium(
+        sender_id, recipient_id
+    )
+    messages = {
+        "sender_missing": "❌ You no longer have an active premium plan.",
+        "sender_expired": "❌ Your premium plan has expired.",
+        "recipient_active": "❌ The recipient already has an active premium plan.",
+        "sender_changed": "❌ Your premium plan changed. Please start /transfer again.",
+        "same_user": "❌ You cannot transfer premium to yourself.",
+    }
+    if not success:
+        text = messages.get(reason, "❌ Transfer could not be completed.")
+        await message.reply_text(text)
+        return
+
+    expiry_text = transferred_expiry.astimezone(IST).strftime("%d-%m-%Y %I:%M %p IST")
+    await message.reply_text(
+        f"✅ Premium transferred successfully to `{recipient_id}`.\n\n"
+        f"The transferred plan expires on `{expiry_text}`."
+    )
+    try:
+        await client.send_message(
+            recipient_id,
+            "🎉 **Premium received!**\n\n"
+            f"Your transferred premium is active until `{expiry_text}`.\n"
+            "Use /myplan to view your plan details.",
+        )
+    except Exception:
+        pass
+
+
 @app.on_message(filters.command("check") & filters.user(OWNER_ID))
 async def get_premium(client, message):
     if len(message.command) == 2:
