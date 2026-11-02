@@ -33,7 +33,7 @@ DL_WORKERS = int(os.getenv("DL_WORKERS", "4"))
 DL_BLOCK = 12 * 1024 * 1024      # bytes per worker request range
 PARALLEL_MIN_SIZE = 12 * 1024 * 1024  # use parallel engine only for bigger files
 
-UPLOAD_CONNECTIONS = int(os.getenv("UPLOAD_CONNECTIONS", "2"))
+UPLOAD_CONNECTIONS = int(os.getenv("UPLOAD_CONNECTIONS", "4"))
 UPLOAD_PART = 512 * 1024        # Telegram's max safe part size
 BIG_FILE = 10 * 1024 * 1024
 
